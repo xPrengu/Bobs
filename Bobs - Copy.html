@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cinetaro - Bob's Burgers Edition</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Architects+Daughter&family=Quicksand:wght@400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-yellow: #FEE76D; /* Mustard/Bun */
+            --accent-red: #F0262A;    /* Ketchup */
+            --louise-green: #95D244;  /* Louise's Dress */
+            --chalkboard-bg: #2D2926; /* Deep Chalkboard Grey */
+            --tina-blue: #9AC7E8;    /* Tina's Shirt */
+            --border-radius: 12px;
+            --font-main: 'Quicksand', sans-serif;
+            --font-logo: 'Luckiest+Guy', cursive;
+            --font-chalk: 'Architects Daughter', cursive;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            font-family: var(--font-main);
+            background-color: #1a1a1a;
+            color: white;
+            overflow-x: hidden;
+        }
+
+        /* Dynamic Background Layer */
+        #dynamic-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background-size: cover;
+            background-position: center;
+            filter: blur(15px) brightness(0.4);
+            transform: scale(1.1);
+            transition: background-image 1s ease-in-out;
+        }
+
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+            min-height: 100vh;
+            background: radial-gradient(circle at center, transparent, rgba(0,0,0,0.8));
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+        h1 {
+            font-family: 'Luckiest Guy', cursive;
+            color: var(--primary-yellow);
+            text-shadow: 4px 4px 0px var(--accent-red);
+            font-size: clamp(2.5rem, 8vw, 4.5rem);
+            margin: 0;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        .burger-badge {
+            display: inline-block;
+            background: var(--accent-red);
+            color: white;
+            font-family: var(--font-chalk);
+            padding: 5px 15px;
+            transform: rotate(-3deg);
+            border: 2px solid white;
+            box-shadow: 4px 4px 0px rgba(0,0,0,0.3);
+            font-size: 1.2rem;
+            margin-top: -10px;
+        }
+
+        /* More Part 1 styling follows in next section... */
+/* Continued from Part 1 Styles */
+        .player-wrapper {
+            width: 100%;
+            max-width: 1100px;
+            background: var(--chalkboard-bg);
+            border: 8px solid #444;
+            border-radius: var(--border-radius);
+            box-shadow: 0 25px 60px rgba(0,0,0,0.8);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 */
+            height: 0;
+            background: #000;
+        }
+
+        .video-container iframe {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            border: none;
+        }
+
+        .controls-shelf {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 20px;
+            padding: 20px;
+            background: #222;
+            border-top: 5px solid var(--accent-red);
+        }
+
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .control-card {
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px dashed rgba(255,255,255,0.2);
+        }
+
+        .label-text {
+            font-family: var(--font-chalk);
+            color: var(--primary-yellow);
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        select, button {
+            width: 100%;
+            padding: 10px;
+            background: #333;
+            color: white;
+            border: 2px solid var(--louise-green);
+            border-radius: 6px;
+            font-family: var(--font-main);
+            cursor: pointer;
+        }
+
+        .nav-btns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .nav-btn {
+            background: var(--accent-red);
+            border: none;
+            color: white;
+            font-family: var(--font-logo);
+            font-size: 1rem;
+            transition: 0.2s;
+        }
+
+        .nav-btn:hover { transform: scale(1.05); filter: brightness(1.2); }
+
+        /* Episode Grid */
+        .episode-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+            gap: 8px;
+            max-height: 250px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .ep-btn {
+            background: #444;
+            border: 1px solid #555;
+            padding: 10px 0;
+            text-align: center;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: var(--font-logo);
+        }
+
+        .ep-btn.active {
+            background: var(--louise-green);
+            color: #000;
+        }
+
+        /* Toggle Switch for Auto-Next */
+        .switch-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 22px;
+        }
+
+        .switch input { opacity: 0; width: 0; height: 0; }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #555;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px; width: 16px;
+            left: 3px; bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+/* Storefront Episode Styling */
+.ep-btn {
+    background: #444;
+    border: 3px solid #666; /* The Window Frame */
+    padding: 12px 0;
+    text-align: center;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: var(--font-logo);
+    position: relative;
+    transition: all 0.3s ease;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+}
+
+/* "Grand Opening" - Unwatched Episodes */
+.ep-btn.unwatched {
+    border-color: var(--louise-green);
+    box-shadow: 0 0 10px var(--louise-green);
+}
+
+/* "Closed" - Watched Episodes */
+.ep-btn.watched {
+    opacity: 0.4;
+    filter: grayscale(0.8);
+    border-color: #222;
+}
+
+/* The "Active" Episode - Now Playing */
+.ep-btn.active {
+    background: var(--primary-yellow);
+    color: #000;
+    opacity: 1;
+    filter: none;
+    transform: scale(1.1);
+    z-index: 2;
+    box-shadow: 0 0 20px var(--primary-yellow);
+}
+
+/* Door Sign Overlay */
+.ep-btn.watched::after {
+    content: 'CLOSED';
+    position: absolute;
+    bottom: 2px;
+    font-size: 0.6rem;
+    width: 100%;
+    left: 0;
+    color: var(--accent-red);
+    font-family: var(--font-chalk);
+}
+
+        input:checked + .slider { background-color: var(--louise-green); }
+        input:checked + .slider:before { transform: translateX(22px); }
+    </style>
+</head>
+<body>
+    <div id="dynamic-bg"></div>
+
+    <div class="app-container">
+        <header>
+            <h1>BOB'S BURGERS</h1>
+            <div class="burger-badge">TODAY'S SPECIAL: THE AUTO-PLAY PATTY</div>
+        </header>
+
+        <main class="player-wrapper">
+            <div class="video-container">
+                <iframe id="main-player" allowfullscreen></iframe>
+            </div>
+
+            <div class="controls-shelf">
+                <div class="side-panel">
+                    <div class="control-card">
+                        <label class="label-text">Select Server</label>
+                        <select id="server-select">
+                            <option value="https://vidsrc.to/embed/tv/">Server 1 (VidSrc.to)</option>
+                            <option value="https://vidsrc.me/embed/tv/">Server 2 (VidSrc.me)</option>
+                            <option value="https://2embed.cc/embedtv/">Server 3 (2Embed)</option>
+                        </select>
+                    </div>
+
+                    <div class="control-card">
+                        <label class="label-text">Season</label>
+                        <select id="season-select"></select>
+                    </div>
+
+                    <div class="control-card switch-group">
+                        <span class="label-text" style="margin:0">Auto-Next</span>
+                        <label class="switch">
+                            <input type="checkbox" id="auto-next-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="nav-btns">
+                        <button class="nav-btn" onclick="navEpisode(-1)">PREV</button>
+                        <button class="nav-btn" onclick="navEpisode(1)">NEXT</button>
+                    </div>
+                </div>
+
+                <div class="control-card" style="height: 100%;">
+                    <label class="label-text">Order Up: Episode List</label>
+                    <div id="episode-list" class="episode-grid"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+<script>
+    const CONFIG = {
+        TMDB_ID: 32726, 
+        // If 401 persists, generate a fresh key at themoviedb.org
+        API_KEY: "f07d2f928a68a410efb5f49e4726b2b6", 
+        DEFAULT_SERVER: "https://vidsrc.to/embed/tv/"
+    };
+
+    let currentProgress = JSON.parse(localStorage.getItem('bobs_save')) || { s: 1, e: 1 };
+    let autoNextTimer;
+
+    const player = document.getElementById('main-player');
+    const seasonSelect = document.getElementById('season-select');
+    const episodeList = document.getElementById('episode-list');
+    const serverSelect = document.getElementById('server-select');
+    const dynamicBg = document.getElementById('dynamic-bg');
+    const autoNextToggle = document.getElementById('auto-next-toggle');
+
+    async function initApp() {
+        autoNextToggle.checked = localStorage.getItem('auto_next') === 'true';
+
+        try {
+            const res = await fetch(`https://api.themoviedb.org/3/tv/${CONFIG.TMDB_ID}?api_key=${CONFIG.API_KEY}`);
+            
+            if (!res.ok) throw new Error(`Server responded with ${res.status}`); // Catch 401/404
+            
+            const data = await res.json();
+            
+            if (data.backdrop_path) {
+                dynamicBg.style.backgroundImage = `url(https://image.tmdb.org/t/p/original${data.backdrop_path})`;
+            }
+
+            seasonSelect.innerHTML = ''; 
+            if (data.seasons) {
+                data.seasons.forEach(s => {
+                    if (s.season_number === 0) return;
+                    const opt = document.createElement('option');
+                    opt.value = s.season_number;
+                    opt.textContent = `Season ${s.season_number}`;
+                    seasonSelect.appendChild(opt);
+                });
+            }
+        } catch (err) { 
+            console.error("API Error - Using Fallback Menu:", err);
+            // FAIL-SAFE: Manually create seasons if API is blocked
+            seasonSelect.innerHTML = '';
+            for(let i=1; i<=15; i++) {
+                const opt = document.createElement('option');
+                opt.value = i;
+                opt.textContent = `Season ${i}`;
+                seasonSelect.appendChild(opt);
+            }
+        }
+
+        seasonSelect.value = currentProgress.s;
+        loadEpisodes(currentProgress.s, currentProgress.e);
+    }
+
+// Initialize the "Served" episodes list from storage
+let servedEpisodes = JSON.parse(localStorage.getItem('bobs_served_list')) || [];
+
+async function loadEpisodes(sNum, activeEp = 1) {
+    episodeList.innerHTML = '<p style="font-family:var(--font-chalk)">Setting up the storefronts...</p>';
+    try {
+        const res = await fetch(`https://api.themoviedb.org/3/tv/${CONFIG.TMDB_ID}/season/${sNum}?api_key=${CONFIG.API_KEY}`);
+        const data = await res.json();
+        episodeList.innerHTML = '';
+        
+        data.episodes.forEach(ep => {
+            const epId = `s${sNum}e${ep.episode_number}`; // Unique ID for this episode
+            const isWatched = servedEpisodes.includes(epId);
+            
+            const btn = document.createElement('div');
+            // Apply storefront classes
+            btn.className = `ep-btn ${isWatched ? 'watched' : 'unwatched'} ${ep.episode_number == activeEp ? 'active' : ''}`;
+            btn.textContent = ep.episode_number;
+            btn.onclick = () => playEpisode(sNum, ep.episode_number);
+            episodeList.appendChild(btn);
+        });
+    } catch (err) {
+        // Fallback generic buttons
+        episodeList.innerHTML = '';
+        for(let i=1; i<=22; i++) {
+            const btn = document.createElement('div');
+            btn.className = 'ep-btn unwatched';
+            btn.textContent = i;
+            btn.onclick = () => playEpisode(sNum, i);
+            episodeList.appendChild(btn);
+        }
+    }
+}
+
+async function playEpisode(s, e, updateProgress = true) {
+    const epId = `s${s}e${e}`;
+    
+    // 1. Mark as "Served" in memory
+    if (!servedEpisodes.includes(epId)) {
+        servedEpisodes.push(epId);
+        localStorage.setItem('bobs_served_list', JSON.stringify(servedEpisodes));
+    }
+
+    // 2. Standard play logic
+    player.src = `${serverSelect.value}${CONFIG.TMDB_ID}/${s}/${e}`;
+    
+    if (updateProgress) {
+        currentProgress = { s, e };
+        localStorage.setItem('bobs_save', JSON.stringify(currentProgress));
+    }
+
+    // 3. Update the visual storefronts
+    document.querySelectorAll('.ep-btn').forEach(btn => {
+        const btnEp = btn.textContent;
+        const btnId = `s${s}e${btnEp}`;
+        
+        btn.classList.toggle('active', btnEp == e);
+        if (servedEpisodes.includes(btnId)) {
+            btn.classList.add('watched');
+            btn.classList.remove('unwatched');
+        }
+    });
+
+    if (autoNextToggle.checked) startAutoNextTimer(s, e);
+}
+
+async function startAutoNextTimer(s, e) {
+        // 1. Clear any existing timers to prevent overlaps
+        clearTimeout(autoNextTimer);
+        
+        // 2. Set an immediate fallback of 22 minutes
+        let durationMinutes = 22; 
+        
+        console.log("🍔 Kitchen is prepping the next order...");
+
+        try {
+            // 3. Try to get real runtime, but don't let a 401 error stop us
+            const res = await fetch(`https://api.themoviedb.org/3/tv/${CONFIG.TMDB_ID}/season/${s}/episode/${e}?api_key=${CONFIG.API_KEY}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.runtime) durationMinutes = data.runtime;
+            }
+        } catch (err) {
+            console.warn("Auto-Next: API blocked (401), using standard 22-min timer.");
+        }
+
+        const durationMs = durationMinutes * 60 * 1000;
+        
+        // 4. Start the actual countdown
+        console.log(`⏱️ Timer Started: Next episode in ${durationMinutes} minutes.`);
+        
+        autoNextTimer = setTimeout(() => {
+            if (autoNextToggle.checked) {
+                console.log("🔔 Order Up! Transitioning now.");
+                navEpisode(1);
+            }
+        }, durationMs);
+    }
+
+    function navEpisode(dir) {
+        let nextE = parseInt(currentProgress.e) + dir;
+        if (nextE < 1) return;
+        console.log(`Navigating to episode ${nextE}`);
+        playEpisode(currentProgress.s, nextE);
+    }
+
+    // Event Listeners
+    seasonSelect.onchange = (e) => loadEpisodes(e.target.value, 1);
+    serverSelect.onchange = () => playEpisode(currentProgress.s, currentProgress.e);
+    
+    autoNextToggle.onchange = (e) => {
+        const isEnabled = e.target.checked;
+        localStorage.setItem('auto_next', isEnabled);
+        if(isEnabled) {
+            startAutoNextTimer(currentProgress.s, currentProgress.e);
+        } else {
+            console.log("🛑 Auto-Next Cancelled.");
+            clearTimeout(autoNextTimer);
+        }
+    };
+
+    // Initialize the app
+    initApp();
+</script>
+    <footer style="text-align:center; padding: 20px; color:rgba(255,255,255,0.4); font-size:0.8rem;">
+        &copy; 2025 Cinetaro - "Keep it Bobby."
+    </footer>
+</body>
+</html>
