@@ -328,6 +328,12 @@
             <div class="burger-badge">TODAY'S SPECIAL: THE AUTO-PLAY PATTY</div>
         </header>
 
+<div class="user-select" style="margin-top: 15px;">
+    <button onclick="switchUser('guest')" id="btn-guest" style="width:auto; padding: 5px 15px; font-size: 0.8rem; border-color: #666;">Guest</button>
+    <button onclick="switchUser('user1')" id="btn-user1" style="width:auto; padding: 5px 15px; font-size: 0.8rem; border-color: #666;">User 1</button>
+</div>
+<p id="status-msg" style="font-family: var(--font-chalk); font-size: 0.9rem; color: var(--louise-green); margin-top: 5px;"></p>
+
         <main class="player-wrapper">
             <div class="video-container">
                 <iframe id="main-player" allowfullscreen></iframe>
@@ -375,199 +381,201 @@
             </div>
         </main>
     </div>
-<script>
-// Load the QR Library
-const qrScript = document.createElement('script');
-qrScript.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
-document.head.appendChild(qrScript);
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
-qrScript.onload = () => {
-    new QRCode(document.getElementById("qrcode"), {
-        text: window.location.href, // Points to your live GitHub URL
-        width: 100,
-        height: 100
+<script type="module">
+  // 1. Firebase Imports
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  // 2. Your Config
+  const firebaseConfig = {
+    apiKey: "AIzaSyB0Ur1A-mSI7VHCEgdkyNjC6FU_pgeFdfk",
+    authDomain: "bobs-1fd5d.firebaseapp.com",
+    projectId: "bobs-1fd5d",
+    storageBucket: "bobs-1fd5d.firebasestorage.app",
+    messagingSenderId: "788419162788",
+    appId: "1:788419162788:web:efba4cf4d1a8a0891a2c31"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // 3. App State
+  const CONFIG = {
+    TMDB_ID: 32726, 
+    API_KEY: "f07d2f928a68a410efb5f49e4726b2b6"
+  };
+
+  let currentUser = localStorage.getItem('bobs_user') || 'guest';
+  let currentProgress = { s: 1, e: 1 };
+  let servedEpisodes = JSON.parse(localStorage.getItem('bobs_served_list')) || [];
+  let autoNextTimer;
+
+  // DOM Elements
+  const player = document.getElementById('main-player');
+  const seasonSelect = document.getElementById('season-select');
+  const episodeList = document.getElementById('episode-list');
+  const serverSelect = document.getElementById('server-select');
+  const autoNextToggle = document.getElementById('auto-next-toggle');
+
+  // --- CORE FUNCTIONS ---
+
+  async function initApp() {
+    // A. Check URL for Handoff (If you scanned a QR)
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('u')) currentUser = params.get('u');
+    
+    // B. Setup UI
+    autoNextToggle.checked = localStorage.getItem('auto_next') === 'true';
+    await loadSeasons();
+
+    // C. Load Progress (Cloud if User1, Local if Guest)
+    if (currentUser === 'user1') {
+      await syncFromCloud();
+    } else {
+      currentProgress = JSON.parse(localStorage.getItem('bobs_save')) || { s: 1, e: 1 };
+      seasonSelect.value = currentProgress.s;
+      loadEpisodes(currentProgress.s, currentProgress.e);
+    }
+
+    // D. Final Check: Did the URL tell us to play a specific episode?
+    const sUrl = params.get('s');
+    const eUrl = params.get('e');
+    if (sUrl && eUrl) {
+      playEpisode(parseInt(sUrl), parseInt(eUrl));
+    } else {
+      playEpisode(currentProgress.s, currentProgress.e, false);
+    }
+  }
+
+  async function syncToCloud(s, e) {
+    if (currentUser === 'guest') return;
+    await setDoc(doc(db, "users", currentUser), {
+      lastWatched: { s, e },
+      servedEpisodes: servedEpisodes,
+      lastSync: Date.now()
     });
-};
-    const CONFIG = {
-        TMDB_ID: 32726, 
-        // If 401 persists, generate a fresh key at themoviedb.org
-        API_KEY: "f07d2f928a68a410efb5f49e4726b2b6", 
-        DEFAULT_SERVER: "https://vidsrc.to/embed/tv/"
-    };
+  }
 
-    let currentProgress = JSON.parse(localStorage.getItem('bobs_save')) || { s: 1, e: 1 };
-    let autoNextTimer;
-
-    const player = document.getElementById('main-player');
-    const seasonSelect = document.getElementById('season-select');
-    const episodeList = document.getElementById('episode-list');
-    const serverSelect = document.getElementById('server-select');
-    const dynamicBg = document.getElementById('dynamic-bg');
-    const autoNextToggle = document.getElementById('auto-next-toggle');
-
-    async function initApp() {
-        autoNextToggle.checked = localStorage.getItem('auto_next') === 'true';
-
-        try {
-            const res = await fetch(`https://api.themoviedb.org/3/tv/${CONFIG.TMDB_ID}?api_key=${CONFIG.API_KEY}`);
-            
-            if (!res.ok) throw new Error(`Server responded with ${res.status}`); // Catch 401/404
-            
-            const data = await res.json();
-            
-            if (data.backdrop_path) {
-                dynamicBg.style.backgroundImage = `url(https://image.tmdb.org/t/p/original${data.backdrop_path})`;
-            }
-
-            seasonSelect.innerHTML = ''; 
-            if (data.seasons) {
-                data.seasons.forEach(s => {
-                    if (s.season_number === 0) return;
-                    const opt = document.createElement('option');
-                    opt.value = s.season_number;
-                    opt.textContent = `Season ${s.season_number}`;
-                    seasonSelect.appendChild(opt);
-                });
-            }
-        } catch (err) { 
-            console.error("API Error - Using Fallback Menu:", err);
-            // FAIL-SAFE: Manually create seasons if API is blocked
-            seasonSelect.innerHTML = '';
-            for(let i=1; i<=15; i++) {
-                const opt = document.createElement('option');
-                opt.value = i;
-                opt.textContent = `Season ${i}`;
-                seasonSelect.appendChild(opt);
-            }
-        }
-
-        seasonSelect.value = currentProgress.s;
-        loadEpisodes(currentProgress.s, currentProgress.e);
+  async function syncFromCloud() {
+    const userDoc = await getDoc(doc(db, "users", currentUser));
+    if (userDoc.exists()) {
+      const data = userDoc.data();
+      currentProgress = data.lastWatched;
+      servedEpisodes = data.servedEpisodes || [];
+      seasonSelect.value = currentProgress.s;
+      loadEpisodes(currentProgress.s, currentProgress.e);
     }
+  }
 
-// Initialize the "Served" episodes list from storage
-let servedEpisodes = JSON.parse(localStorage.getItem('bobs_served_list')) || [];
-
-async function loadEpisodes(sNum, activeEp = 1) {
-    episodeList.innerHTML = '<p style="font-family:var(--font-chalk)">Setting up the storefronts...</p>';
-    try {
-        const res = await fetch(`https://api.themoviedb.org/3/tv/${CONFIG.TMDB_ID}/season/${sNum}?api_key=${CONFIG.API_KEY}`);
-        const data = await res.json();
-        episodeList.innerHTML = '';
-        
-        data.episodes.forEach(ep => {
-            const epId = `s${sNum}e${ep.episode_number}`; // Unique ID for this episode
-            const isWatched = servedEpisodes.includes(epId);
-            
-            const btn = document.createElement('div');
-            // Apply storefront classes
-            btn.className = `ep-btn ${isWatched ? 'watched' : 'unwatched'} ${ep.episode_number == activeEp ? 'active' : ''}`;
-            btn.textContent = ep.episode_number;
-            btn.onclick = () => playEpisode(sNum, ep.episode_number);
-            episodeList.appendChild(btn);
-        });
-    } catch (err) {
-        // Fallback generic buttons
-        episodeList.innerHTML = '';
-        for(let i=1; i<=22; i++) {
-            const btn = document.createElement('div');
-            btn.className = 'ep-btn unwatched';
-            btn.textContent = i;
-            btn.onclick = () => playEpisode(sNum, i);
-            episodeList.appendChild(btn);
-        }
-    }
-}
-
-async function playEpisode(s, e, updateProgress = true) {
+  async function playEpisode(s, e, updateStorage = true) {
     const epId = `s${s}e${e}`;
     
-    // 1. Mark as "Served" in memory
-    if (!servedEpisodes.includes(epId)) {
-        servedEpisodes.push(epId);
-        localStorage.setItem('bobs_served_list', JSON.stringify(servedEpisodes));
-    }
+    // Update Tracking
+    if (!servedEpisodes.includes(epId)) servedEpisodes.push(epId);
+    currentProgress = { s, e };
 
-    // 2. Standard play logic
+    // Update Player
     player.src = `${serverSelect.value}${CONFIG.TMDB_ID}/${s}/${e}`;
-    
-    if (updateProgress) {
-        currentProgress = { s, e };
-        localStorage.setItem('bobs_save', JSON.stringify(currentProgress));
+
+    // Update Handoff QR
+    updateQR(s, e);
+
+    // Save Data
+    if (updateStorage) {
+      localStorage.setItem('bobs_save', JSON.stringify(currentProgress));
+      localStorage.setItem('bobs_served_list', JSON.stringify(servedEpisodes));
+      syncToCloud(s, e);
     }
 
-    // 3. Update the visual storefronts
-    document.querySelectorAll('.ep-btn').forEach(btn => {
-        const btnEp = btn.textContent;
-        const btnId = `s${s}e${btnEp}`;
-        
-        btn.classList.toggle('active', btnEp == e);
-        if (servedEpisodes.includes(btnId)) {
-            btn.classList.add('watched');
-            btn.classList.remove('unwatched');
-        }
-    });
-
+    // Refresh UI
+    updateEpisodeGrid(s, e);
     if (autoNextToggle.checked) startAutoNextTimer(s, e);
+  }
+
+  function updateQR(s, e) {
+    const handoffURL = `${window.location.origin}${window.location.pathname}?s=${s}&e=${e}&u=${currentUser}`;
+    document.getElementById("qrcode").innerHTML = "";
+    new QRCode(document.getElementById("qrcode"), {
+        text: handoffURL,
+        width: 100, height: 100
+    });
+  }
+
+  // --- UI & HELPER FUNCTIONS ---
+
+async function loadSeasons() {
+    try {
+        const res = await fetch(`https://api.themoviedb.org/3/tv/${CONFIG.TMDB_ID}?api_key=${CONFIG.API_KEY}`);
+        
+        if (!res.ok) {
+            throw new Error(`TMDB API returned status: ${res.status}`);
+        }
+
+        const data = await res.json();
+        
+        if (data.seasons && data.seasons.length > 0) {
+            seasonSelect.innerHTML = data.seasons
+                .filter(s => s.season_number > 0)
+                .map(s => `<option value="${s.season_number}">Season ${s.season_number}</option>`)
+                .join('');
+            
+            // Trigger episode load for the first season found
+            loadEpisodes(seasonSelect.value, currentProgress.e);
+        } else {
+            seasonSelect.innerHTML = '<option>No Seasons Found</option>';
+        }
+    } catch (e) {
+        console.error("Critical API Error:", e);
+        document.getElementById('status-msg').textContent = "Error loading seasons. Check API Key.";
+        document.getElementById('status-msg').style.color = "var(--accent-red)";
+    }
 }
 
-async function startAutoNextTimer(s, e) {
-        // 1. Clear any existing timers to prevent overlaps
-        clearTimeout(autoNextTimer);
-        
-        // 2. Set an immediate fallback of 22 minutes
-        let durationMinutes = 22; 
-        
-        console.log("🍔 Kitchen is prepping the next order...");
+  async function loadEpisodes(sNum, activeEp = 1) {
+    episodeList.innerHTML = 'Loading...';
+    try {
+      const res = await fetch(`https://api.themoviedb.org/3/tv/${CONFIG.TMDB_ID}/season/${sNum}?api_key=${CONFIG.API_KEY}`);
+      const data = await res.json();
+      episodeList.innerHTML = '';
+      data.episodes.forEach(ep => {
+        const epId = `s${sNum}e${ep.episode_number}`;
+        const isWatched = servedEpisodes.includes(epId);
+        const btn = document.createElement('div');
+        btn.className = `ep-btn ${isWatched ? 'watched' : 'unwatched'} ${ep.episode_number == activeEp ? 'active' : ''}`;
+        btn.textContent = ep.episode_number;
+        btn.onclick = () => playEpisode(sNum, ep.episode_number);
+        episodeList.appendChild(btn);
+      });
+    } catch (e) { console.error(e); }
+  }
 
-        try {
-            // 3. Try to get real runtime, but don't let a 401 error stop us
-            const res = await fetch(`https://api.themoviedb.org/3/tv/${CONFIG.TMDB_ID}/season/${s}/episode/${e}?api_key=${CONFIG.API_KEY}`);
-            if (res.ok) {
-                const data = await res.json();
-                if (data.runtime) durationMinutes = data.runtime;
-            }
-        } catch (err) {
-            console.warn("Auto-Next: API blocked (401), using standard 22-min timer.");
-        }
+  function updateEpisodeGrid(s, e) {
+    document.querySelectorAll('.ep-btn').forEach(btn => {
+      const btnEp = btn.textContent;
+      const btnId = `s${s}e${btnEp}`;
+      btn.classList.toggle('active', btnEp == e);
+      if (servedEpisodes.includes(btnId)) {
+        btn.classList.add('watched');
+        btn.classList.remove('unwatched');
+      }
+    });
+  }
 
-        const durationMs = durationMinutes * 60 * 1000;
-        
-        // 4. Start the actual countdown
-        console.log(`⏱️ Timer Started: Next episode in ${durationMinutes} minutes.`);
-        
-        autoNextTimer = setTimeout(() => {
-            if (autoNextToggle.checked) {
-                console.log("🔔 Order Up! Transitioning now.");
-                navEpisode(1);
-            }
-        }, durationMs);
-    }
+  // --- EVENT LISTENERS ---
+  window.navEpisode = (dir) => {
+    let nextE = parseInt(currentProgress.e) + dir;
+    if (nextE < 1) return;
+    playEpisode(currentProgress.s, nextE);
+  };
 
-    function navEpisode(dir) {
-        let nextE = parseInt(currentProgress.e) + dir;
-        if (nextE < 1) return;
-        console.log(`Navigating to episode ${nextE}`);
-        playEpisode(currentProgress.s, nextE);
-    }
+  seasonSelect.onchange = (e) => loadEpisodes(e.target.value, 1);
+  serverSelect.onchange = () => playEpisode(currentProgress.s, currentProgress.e);
+  autoNextToggle.onchange = (e) => localStorage.setItem('auto_next', e.target.checked);
 
-    // Event Listeners
-    seasonSelect.onchange = (e) => loadEpisodes(e.target.value, 1);
-    serverSelect.onchange = () => playEpisode(currentProgress.s, currentProgress.e);
-    
-    autoNextToggle.onchange = (e) => {
-        const isEnabled = e.target.checked;
-        localStorage.setItem('auto_next', isEnabled);
-        if(isEnabled) {
-            startAutoNextTimer(currentProgress.s, currentProgress.e);
-        } else {
-            console.log("🛑 Auto-Next Cancelled.");
-            clearTimeout(autoNextTimer);
-        }
-    };
-
-    // Initialize the app
-    initApp();
+  // Initialize
+  initApp();
 </script>
     <footer style="text-align:center; padding: 20px; color:rgba(255,255,255,0.4); font-size:0.8rem;">
         &copy; 2025 Cinetaro - "Keep it Bobby."
