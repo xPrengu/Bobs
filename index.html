@@ -78,101 +78,106 @@
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    // Import v12.7.0 SDKs from the CDN
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-analytics.js";
 
-        // Firebase Setup
-        const firebaseConfig = {
-            apiKey: "AIzaSyB0Ur1A-mSI7VHCEgdkyNjC6FU_pgeFdfk",
-            authDomain: "bobs-1fd5d.firebaseapp.com",
-            projectId: "bobs-1fd5d",
-            storageBucket: "bobs-1fd5d.firebasestorage.app",
-            messagingSenderId: "788419162788",
-            appId: "1:788419162788:web:efba4cf4d1a8a0891a2c31"
-        };
+    // Your new Firebase configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyC5Ol2nQZ_DVFg2d8Kan5K9Z-IZAQHHqd0",
+        authDomain: "bobby-3c12e.firebaseapp.com",
+        projectId: "bobby-3c12e",
+        storageBucket: "bobby-3c12e.firebasestorage.app",
+        messagingSenderId: "587264926884",
+        appId: "1:587264926884:web:daa3f6d933f5e96cd8b231",
+        measurementId: "G-YX9WVTFQ7F"
+    };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+    // Initialize Firebase services
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const analytics = getAnalytics(app); // Analytics is now active
 
-        // CONFIG
-        const CONFIG = {
-            TMDB_ID: 32726, 
-            API_KEY: "REPLACE_WITH_NEW_KEY" // Generate at themoviedb.org
-        };
+    // CONFIG for TMDB
+    const CONFIG = {
+        TMDB_ID: 32726, 
+        API_KEY: "add81e51153d96a2f9d7b2023943a38b" 
+    };
 
-        let currentUser = localStorage.getItem('bobs_user') || 'guest';
-        let currentProgress = { s: 1, e: 1 };
-        let servedEpisodes = JSON.parse(localStorage.getItem('bobs_served_list')) || [];
+    let currentUser = localStorage.getItem('bobs_user') || 'guest';
+    let currentProgress = { s: 1, e: 1 };
+    let servedEpisodes = JSON.parse(localStorage.getItem('bobs_served_list')) || [];
 
-        const player = document.getElementById('main-player');
-        const seasonSelect = document.getElementById('season-select');
-        const episodeList = document.getElementById('episode-list');
-        const serverSelect = document.getElementById('server-select');
+    const player = document.getElementById('main-player');
+    const seasonSelect = document.getElementById('season-select');
+    const episodeList = document.getElementById('episode-list');
+    const serverSelect = document.getElementById('server-select');
 
-        // switchUser logic
-        window.switchUser = async (name) => {
-            currentUser = name;
-            localStorage.setItem('bobs_user', name);
-            document.getElementById('btn-guest').className = name === 'guest' ? 'active-user' : '';
-            document.getElementById('btn-user1').className = name === 'user1' ? 'active-user' : '';
-            
-            if (name === 'user1') {
-                document.getElementById('status-msg').textContent = "Clocking in Staff...";
-                await syncFromCloud();
-            } else {
-                document.getElementById('status-msg').textContent = "Eating as Guest";
-                currentProgress = JSON.parse(localStorage.getItem('bobs_save')) || { s: 1, e: 1 };
-                seasonSelect.value = currentProgress.s;
+    window.switchUser = async (name) => {
+        currentUser = name;
+        localStorage.setItem('bobs_user', name);
+        document.getElementById('btn-guest').className = name === 'guest' ? 'active-user' : '';
+        document.getElementById('btn-user1').className = name === 'user1' ? 'active-user' : '';
+        
+        if (name === 'user1') {
+            document.getElementById('status-msg').textContent = "Clocking in Staff...";
+            await syncFromCloud();
+        } else {
+            document.getElementById('status-msg').textContent = "Eating as Guest";
+            currentProgress = JSON.parse(localStorage.getItem('bobs_save')) || { s: 1, e: 1 };
+            seasonSelect.value = currentProgress.s;
+            await loadEpisodes(currentProgress.s, currentProgress.e);
+            playEpisode(currentProgress.s, currentProgress.e, false);
+        }
+    };
+
+    async function syncFromCloud() {
+        try {
+            const userDoc = await getDoc(doc(db, "users", currentUser));
+            if (userDoc.exists()) {
+                const data = userDoc.data();
+                currentProgress = data.lastWatched || { s: 1, e: 1 };
+                servedEpisodes = data.servedEpisodes || [];
+                seasonSelect.value = currentProgress.s; 
                 await loadEpisodes(currentProgress.s, currentProgress.e);
                 playEpisode(currentProgress.s, currentProgress.e, false);
+                document.getElementById('status-msg').textContent = "Staff Progress Loaded!";
+            } else {
+                document.getElementById('status-msg').textContent = "No cloud data found.";
+                await loadEpisodes(seasonSelect.value || 1, 1);
             }
-        };
-
-        async function syncFromCloud() {
-            try {
-                const userDoc = await getDoc(doc(db, "users", currentUser));
-                if (userDoc.exists()) {
-                    const data = userDoc.data();
-                    currentProgress = data.lastWatched || { s: 1, e: 1 };
-                    servedEpisodes = data.servedEpisodes || [];
-                    seasonSelect.value = currentProgress.s; 
-                    await loadEpisodes(currentProgress.s, currentProgress.e);
-                    playEpisode(currentProgress.s, currentProgress.e, false);
-                    document.getElementById('status-msg').textContent = "Staff Progress Loaded!";
-                } else {
-                    document.getElementById('status-msg').textContent = "No cloud data found.";
-                    await loadEpisodes(seasonSelect.value || 1, 1);
-                }
-            } catch (e) {
-                document.getElementById('status-msg').textContent = "Sync failed. Database might be offline.";
-                console.error(e);
-            }
+        } catch (e) {
+            document.getElementById('status-msg').textContent = "Sync failed. Check Firestore setup.";
+            console.error(e);
         }
+    }
 
-        // loadSeasons logic with Fail-Safe
-        async function loadSeasons() {
-            try {
-                const res = await fetch(`https://api.themoviedb.org/3/tv/${CONFIG.TMDB_ID}?api_key=${CONFIG.API_KEY}`);
-                if (!res.ok) throw new Error("API Key Invalid");
-                const data = await res.json();
+    async function loadSeasons() {
+        try {
+            const res = await fetch(`https://api.themoviedb.org/3/tv/${CONFIG.TMDB_ID}?api_key=${CONFIG.API_KEY}`);
+            if (!res.ok) throw new Error("API Key Invalid");
+            const data = await res.json();
+            if (data.seasons) {
                 seasonSelect.innerHTML = data.seasons
                     .filter(s => s.season_number > 0)
                     .map(s => `<option value="${s.season_number}">Season ${s.season_number}</option>`).join('');
-                if (data.backdrop_path) document.getElementById('dynamic-bg').style.backgroundImage = `url(https://image.tmdb.org/t/p/original${data.backdrop_path})`;
-            } catch (e) {
-                console.warn("Using fallback seasons due to API error (401).");
-                let opts = "";
-                for(let i=1; i<=15; i++) opts += `<option value="${i}">Season ${i}</option>`;
-                seasonSelect.innerHTML = opts;
             }
+            if (data.backdrop_path) document.getElementById('dynamic-bg').style.backgroundImage = `url(https://image.tmdb.org/t/p/original${data.backdrop_path})`;
+        } catch (e) {
+            console.warn("Using fallback seasons due to API issues.");
+            let opts = "";
+            for(let i=1; i<=15; i++) opts += `<option value="${i}">Season ${i}</option>`;
+            seasonSelect.innerHTML = opts;
         }
+    }
 
-        async function loadEpisodes(sNum, activeEp = 1) {
-            try {
-                const res = await fetch(`https://api.themoviedb.org/3/tv/${CONFIG.TMDB_ID}/season/${sNum}?api_key=${CONFIG.API_KEY}`);
-                if (!res.ok) throw new Error();
-                const data = await res.json();
-                episodeList.innerHTML = '';
+    async function loadEpisodes(sNum, activeEp = 1) {
+        try {
+            const res = await fetch(`https://api.themoviedb.org/3/tv/${CONFIG.TMDB_ID}/season/${sNum}?api_key=${CONFIG.API_KEY}`);
+            const data = await res.json();
+            episodeList.innerHTML = '';
+            if (data.episodes) {
                 data.episodes.forEach(ep => {
                     const isWatched = servedEpisodes.includes(`s${sNum}e${ep.episode_number}`);
                     const btn = document.createElement('div');
@@ -181,57 +186,49 @@
                     btn.onclick = () => playEpisode(sNum, ep.episode_number);
                     episodeList.appendChild(btn);
                 });
-            } catch (e) { 
-                // Fallback for episodes if API fails
-                episodeList.innerHTML = '';
-                for(let i=1; i<=22; i++) {
-                    const btn = document.createElement('div');
-                    btn.className = 'ep-btn';
-                    btn.textContent = i;
-                    btn.onclick = () => playEpisode(sNum, i);
-                    episodeList.appendChild(btn);
-                }
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    async function playEpisode(s, e, updateStorage = true) {
+        const epId = `s${s}e${e}`;
+        if (!servedEpisodes.includes(epId)) servedEpisodes.push(epId);
+        currentProgress = { s, e };
+        player.src = `${serverSelect.value}${CONFIG.TMDB_ID}/${s}/${e}`;
+        
+        const handoffURL = `${window.location.origin}${window.location.pathname}?s=${s}&e=${e}&u=${currentUser}`;
+        document.getElementById("qrcode").innerHTML = "";
+        new QRCode(document.getElementById("qrcode"), { text: handoffURL, width: 100, height: 100 });
+
+        if (updateStorage) {
+            localStorage.setItem('bobs_save', JSON.stringify(currentProgress));
+            localStorage.setItem('bobs_served_list', JSON.stringify(servedEpisodes));
+            if (currentUser === 'user1') {
+                await setDoc(doc(db, "users", currentUser), { lastWatched: { s, e }, servedEpisodes });
             }
         }
+        document.querySelectorAll('.ep-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.textContent == e);
+            if (servedEpisodes.includes(`s${s}e${btn.textContent}`)) btn.classList.add('watched');
+        });
+    }
 
-        async function playEpisode(s, e, updateStorage = true) {
-            const epId = `s${s}e${e}`;
-            if (!servedEpisodes.includes(epId)) servedEpisodes.push(epId);
-            currentProgress = { s, e };
-            player.src = `${serverSelect.value}${CONFIG.TMDB_ID}/${s}/${e}`;
-            
-            const handoffURL = `${window.location.origin}${window.location.pathname}?s=${s}&e=${e}&u=${currentUser}`;
-            document.getElementById("qrcode").innerHTML = "";
-            new QRCode(document.getElementById("qrcode"), { text: handoffURL, width: 100, height: 100 });
+    async function initApp() {
+        await loadSeasons();
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('u')) currentUser = params.get('u');
+        await switchUser(currentUser);
+        if (params.get('s')) playEpisode(parseInt(params.get('s')), parseInt(params.get('e')));
+    }
 
-            if (updateStorage) {
-                localStorage.setItem('bobs_save', JSON.stringify(currentProgress));
-                localStorage.setItem('bobs_served_list', JSON.stringify(servedEpisodes));
-                if (currentUser === 'user1') {
-                    await setDoc(doc(db, "users", currentUser), { lastWatched: { s, e }, servedEpisodes });
-                }
-            }
-            document.querySelectorAll('.ep-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.textContent == e);
-                if (servedEpisodes.includes(`s${s}e${btn.textContent}`)) btn.classList.add('watched');
-            });
-        }
+    window.navEpisode = (dir) => {
+        let nextE = parseInt(currentProgress.e) + dir;
+        if (nextE >= 1) playEpisode(currentProgress.s, nextE);
+    };
 
-        async function initApp() {
-            await loadSeasons();
-            const params = new URLSearchParams(window.location.search);
-            if (params.get('u')) currentUser = params.get('u');
-            await switchUser(currentUser);
-            if (params.get('s')) playEpisode(parseInt(params.get('s')), parseInt(params.get('e')));
-        }
-
-        window.navEpisode = (dir) => {
-            let nextE = parseInt(currentProgress.e) + dir;
-            if (nextE >= 1) playEpisode(currentProgress.s, nextE);
-        };
-
-        seasonSelect.onchange = (e) => loadEpisodes(e.target.value, 1);
-        initApp();
-    </script>
+    seasonSelect.onchange = (e) => loadEpisodes(e.target.value, 1);
+    initApp();
+</script>
 </body>
 </html>
+
