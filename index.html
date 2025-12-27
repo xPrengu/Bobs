@@ -3,372 +3,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cinetaro - Bob's Burgers Edition</title>
-    
+    <title>Cinetaro - Bob's Burgers (Fail-Safe Edition)</title>
     <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Architects+Daughter&family=Quicksand:wght@400;600&display=swap" rel="stylesheet">
-    
     <style>
         :root {
-            --primary-yellow: #FEE76D;
-            --accent-red: #F0262A;
-            --louise-green: #95D244;
-            --chalkboard-bg: #2D2926;
-            --tina-blue: #9AC7E8;
-            --border-radius: 12px;
-            --font-main: 'Quicksand', sans-serif;
-            --font-logo: 'Luckiest Guy', cursive;
-            --font-chalk: 'Architects Daughter', cursive;
+            --primary-yellow: #FEE76D; --accent-red: #F0262A; --louise-green: #95D244;
+            --chalkboard-bg: #2D2926; --font-main: 'Quicksand', sans-serif;
+            --font-logo: 'Luckiest Guy', cursive; --font-chalk: 'Architects Daughter', cursive;
         }
-
-        body, html {
-            margin: 0; padding: 0;
-            width: 100%; height: 100%;
-            font-family: var(--font-main);
-            background-color: #1a1a1a;
-            color: white;
-            overflow-x: hidden;
-        }
-
-        #dynamic-bg {
-            position: fixed; top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: -1;
-            background-size: cover;
-            background-position: center;
-            filter: blur(15px) brightness(0.4);
-            transform: scale(1.1);
-            transition: background-image 1s ease-in-out;
-        }
-
-        .app-container {
-            display: flex; flex-direction: column;
-            align-items: center; padding: 1rem;
-            min-height: 100vh;
-            background: radial-gradient(circle at center, transparent, rgba(0,0,0,0.8));
-        }
-
-        header { text-align: center; margin-bottom: 2rem; }
-
-        h1 {
-            font-family: var(--font-logo);
-            color: var(--primary-yellow);
-            text-shadow: 4px 4px 0px var(--accent-red);
-            font-size: clamp(2.5rem, 8vw, 4.5rem);
-            margin: 0;
-        }
-
-        .burger-badge {
-            display: inline-block;
-            background: var(--accent-red);
-            color: white;
-            font-family: var(--font-chalk);
-            padding: 5px 15px;
-            transform: rotate(-3deg);
-            border: 2px solid white;
-            box-shadow: 4px 4px 0px rgba(0,0,0,0.3);
-            font-size: 1.2rem;
-            margin-top: -10px;
-        }
-
-        .player-wrapper {
-            width: 100%; max-width: 1100px;
-            background: var(--chalkboard-bg);
-            border: 8px solid #444;
-            border-radius: var(--border-radius);
-            box-shadow: 0 25px 60px rgba(0,0,0,0.8);
-            overflow: hidden;
-        }
-
-        .video-container {
-            position: relative;
-            padding-bottom: 56.25%;
-            height: 0; background: #000;
-        }
-
-        .video-container iframe {
-            position: absolute; top: 0; left: 0;
-            width: 100%; height: 100%; border: none;
-        }
-
-        .controls-shelf {
-            display: grid; grid-template-columns: 1fr;
-            gap: 15px; padding: 15px;
-            background: #222;
-            border-top: 5px solid var(--accent-red);
-        }
-
-        @media (min-width: 850px) {
-            .controls-shelf { grid-template-columns: 280px 1fr; padding: 20px; }
-        }
-
-        .side-panel { display: flex; flex-direction: column; gap: 10px; }
-
-        .control-card {
-            background: rgba(255,255,255,0.05);
-            padding: 15px; border-radius: 8px;
-            border: 1px dashed rgba(255,255,255,0.2);
-        }
-
-        .label-text {
-            font-family: var(--font-chalk);
-            color: var(--primary-yellow);
-            font-size: 1.1rem; display: block; margin-bottom: 8px;
-        }
-
-        select, button {
-            width: 100%; padding: 10px;
-            background: #333; color: white;
-            border: 2px solid var(--louise-green);
-            border-radius: 6px; cursor: pointer;
-        }
-
-        .nav-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .nav-btn { background: var(--accent-red); border: none; font-family: var(--font-logo); }
-
-        .episode-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-            gap: 10px; max-height: 400px; overflow-y: auto;
-        }
-
-        .ep-btn {
-            background: #444; border: 3px solid #666;
-            padding: 12px 0; text-align: center;
-            border-radius: 4px; cursor: pointer;
-            font-family: var(--font-logo);
-            transition: 0.2s;
-        }
-
-        .ep-btn.active { background: var(--primary-yellow); color: #000; transform: scale(1.1); border-color: white; }
-        .ep-btn.watched { opacity: 0.5; border-color: #222; }
-
-        .switch { position: relative; display: inline-block; width: 44px; height: 22px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #555; transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: var(--louise-green); }
-        input:checked + .slider:before { transform: translateX(22px); }
+        body { margin: 0; background: #1a1a1a; color: white; font-family: var(--font-main); }
+        .app-container { display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        header { text-align: center; margin-bottom: 20px; }
+        h1 { font-family: var(--font-logo); color: var(--primary-yellow); text-shadow: 3px 3px 0 var(--accent-red); font-size: 3rem; margin: 0; }
+        .player-wrapper { width: 100%; max-width: 1000px; background: var(--chalkboard-bg); border: 6px solid #444; border-radius: 12px; overflow: hidden; }
+        .video-container { position: relative; padding-bottom: 56.25%; height: 0; background: #000; }
+        iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+        .controls { display: grid; grid-template-columns: 1fr; gap: 15px; padding: 20px; background: #222; border-top: 4px solid var(--accent-red); }
+        @media (min-width: 800px) { .controls { grid-template-columns: 250px 1fr; } }
+        .control-card { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; border: 1px dashed #555; margin-bottom: 10px; }
+        select, button { width: 100%; padding: 10px; background: #333; color: white; border: 2px solid var(--louise-green); border-radius: 6px; cursor: pointer; margin-top: 5px; }
+        .episode-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: 8px; max-height: 300px; overflow-y: auto; }
+        .ep-btn { background: #444; padding: 10px; text-align: center; border-radius: 4px; cursor: pointer; font-family: var(--font-logo); }
+        .ep-btn.active { background: var(--primary-yellow); color: #000; }
+        .ep-btn.watched { opacity: 0.5; }
+        .status { color: #ffab00; font-size: 0.8rem; font-family: var(--font-chalk); margin-top: 5px; }
     </style>
 </head>
 <body>
-    <div id="dynamic-bg"></div>
-
     <div class="app-container">
         <header>
             <h1>BOB'S BURGERS</h1>
-            <div class="burger-badge">TODAY'S SPECIAL: THE AUTO-PLAY PATTY</div>
-            <div style="margin-top:15px">
-                <button onclick="window.switchUser('guest')" style="width:auto; padding:5px 10px;">Guest</button>
-                <button onclick="window.switchUser('user1')" style="width:auto; padding:5px 10px;">User 1</button>
-            </div>
-            <p id="status-msg" style="font-family: var(--font-chalk); color: var(--louise-green);"></p>
+            <div id="status-msg" class="status">Connecting to TMDB...</div>
         </header>
 
         <main class="player-wrapper">
             <div class="video-container">
-                <iframe id="main-player" allowfullscreen></iframe>
+                <iframe id="main-player" allowfullscreen src=""></iframe>
             </div>
 
-            <div class="controls-shelf">
+            <div class="controls">
                 <div class="side-panel">
                     <div class="control-card">
-                        <label class="label-text">Server</label>
-                        <select id="server-select">
+                        <label>Season</label>
+                        <select id="season-select" onchange="window.loadSeason(this.value)"></select>
+                    </div>
+                    <div class="control-card">
+                        <label>Server</label>
+                        <select id="server-select" onchange="window.updatePlayer()">
                             <option value="https://vidsrc.to/embed/tv/">Server 1 (VidSrc.to)</option>
                             <option value="https://vidsrc.me/embed/tv/">Server 2 (VidSrc.me)</option>
                         </select>
                     </div>
-
-                    <div class="control-card">
-                        <label class="label-text">Season</label>
-                        <select id="season-select"></select>
-                    </div>
-
-                    <div class="control-card" style="display:flex; justify-content: space-between; align-items: center;">
-                        <span class="label-text" style="margin:0">Auto-Next</span>
-                        <label class="switch">
-                            <input type="checkbox" id="auto-next-toggle">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-
-                    <div class="nav-btns">
-                        <button class="nav-btn" onclick="window.navEpisode(-1)">PREV</button>
-                        <button class="nav-btn" onclick="window.navEpisode(1)">NEXT</button>
-                    </div>
-
-                    <div class="control-card" style="text-align:center;">
-                        <label class="label-text">Handoff</label>
-                        <div id="qrcode" style="background:white; padding:5px; display:inline-block; border-radius:4px;"></div>
-                    </div>
+                    <button onclick="window.navEpisode(1)" style="background: var(--accent-red); border: none; font-family: var(--font-logo);">NEXT EPISODE</button>
                 </div>
 
                 <div class="control-card">
-                    <label class="label-text">Episode List</label>
+                    <label>Episode List</label>
                     <div id="episode-list" class="episode-grid"></div>
                 </div>
             </div>
         </main>
     </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+    // 1. BACKUP DATA (If API fails)
+    const BACKUP_SEASONS = 15;
+    const BACKUP_EP_COUNT = 22; 
 
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-    const firebaseConfig = {
-        apiKey: "AIzaSyB0Ur1A-mSI7VHCEgdkyNjC6FU_pgeFdfk",
-        authDomain: "bobs-1fd5d.firebaseapp.com",
-        projectId: "bobs-1fd5d",
-        storageBucket: "bobs-1fd5d.firebasestorage.app",
-        messagingSenderId: "788419162788",
-        appId: "1:788419162788:web:efba4cf4d1a8a0891a2c31"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
+    // 2. CONFIG
     const CONFIG = {
         TMDB_ID: 32726,
-        API_KEY: "f07d2f928a68a410efb5f49e4726b2b6"
+        API_KEY: "PASTE_YOUR_NEW_KEY_HERE" // Put a new key here later
     };
 
-    let currentUser = localStorage.getItem('bobs_user') || 'guest';
-    let currentProgress = { s: 1, e: 1 };
-    let servedEpisodes = JSON.parse(localStorage.getItem('bobs_served_list')) || [];
+    let state = {
+        s: 1,
+        e: 1,
+        watched: JSON.parse(localStorage.getItem('bobs_watched')) || []
+    };
 
-    const player = document.getElementById('main-player');
-    const seasonSelect = document.getElementById('season-select');
-    const episodeList = document.getElementById('episode-list');
-    const serverSelect = document.getElementById('server-select');
-    const autoNextToggle = document.getElementById('auto-next-toggle');
-
-    // --- INITIALIZATION ---
-    async function initApp() {
-        const params = new URLSearchParams(window.location.search);
-        if (params.get('u')) currentUser = params.get('u');
-        
-        autoNextToggle.checked = localStorage.getItem('auto_next') === 'true';
-
-        // 1. Load Seasons First
-        await loadSeasons();
-
-        // 2. Load History
-        if (currentUser === 'user1') {
-            await syncFromCloud();
-        } else {
-            const saved = JSON.parse(localStorage.getItem('bobs_save'));
-            if (saved) currentProgress = saved;
-        }
-
-        // 3. Set Select UI
-        seasonSelect.value = currentProgress.s;
-
-        // 4. Load Episodes & Start Video
-        const sUrl = params.get('s');
-        const eUrl = params.get('e');
-        
-        if (sUrl && eUrl) {
-            playEpisode(parseInt(sUrl), parseInt(eUrl));
-        } else {
-            playEpisode(currentProgress.s, currentProgress.e, false);
-        }
+    // 3. CORE FUNCTIONS
+    async function init() {
+        await loadSeasonsUI();
+        window.loadSeason(state.s, state.e);
     }
 
-    async function loadSeasons() {
+    async function loadSeasonsUI() {
+        const select = document.getElementById('season-select');
         try {
             const res = await fetch(`https://api.themoviedb.org/3/tv/${CONFIG.TMDB_ID}?api_key=${CONFIG.API_KEY}`);
+            if (!res.ok) throw new Error("API Unauthorized");
+            
             const data = await res.json();
-            seasonSelect.innerHTML = data.seasons
-                .filter(s => s.season_number > 0)
-                .map(s => `<option value="${s.season_number}">Season ${s.season_number}</option>`)
-                .join('');
-        } catch (e) {
-            document.getElementById('status-msg').textContent = "API Error. Check Shields.";
+            document.getElementById('status-msg').innerText = "Status: Online (TMDB Connected)";
+            select.innerHTML = data.seasons.filter(s => s.season_number > 0)
+                .map(s => `<option value="${s.season_number}">Season ${s.season_number}</option>`).join('');
+        } catch (err) {
+            // FAILSAFE: Load hardcoded seasons if API fails
+            document.getElementById('status-msg').innerText = "Status: Offline (Using Backup List)";
+            let options = "";
+            for(let i=1; i<=BACKUP_SEASONS; i++) options += `<option value="${i}">Season ${i}</option>`;
+            select.innerHTML = options;
         }
     }
 
-    async function loadEpisodes(sNum, activeEp = 1) {
-        episodeList.innerHTML = 'Loading episodes...';
+    window.loadSeason = async function(sNum, activeEp = 1) {
+        state.s = sNum;
+        const grid = document.getElementById('episode-list');
+        grid.innerHTML = "Loading...";
+
         try {
             const res = await fetch(`https://api.themoviedb.org/3/tv/${CONFIG.TMDB_ID}/season/${sNum}?api_key=${CONFIG.API_KEY}`);
+            if (!res.ok) throw new Error();
             const data = await res.json();
-            episodeList.innerHTML = '';
-            data.episodes.forEach(ep => {
-                const epId = `s${sNum}e${ep.episode_number}`;
-                const btn = document.createElement('div');
-                btn.className = `ep-btn ${servedEpisodes.includes(epId) ? 'watched' : ''} ${ep.episode_number == activeEp ? 'active' : ''}`;
-                btn.textContent = ep.episode_number;
-                btn.onclick = () => playEpisode(sNum, ep.episode_number);
-                episodeList.appendChild(btn);
-            });
-        } catch (e) { console.error(e); }
-    }
-
-    window.playEpisode = async function(s, e, updateStorage = true) {
-        currentProgress = { s, e };
-        const epId = `s${s}e${e}`;
-        if (!servedEpisodes.includes(epId)) servedEpisodes.push(epId);
-
-        // Update UI
-        player.src = `${serverSelect.value}${CONFIG.TMDB_ID}/${s}/${e}`;
-        if (seasonSelect.value != s) {
-            seasonSelect.value = s;
-        }
-        await loadEpisodes(s, e);
-        updateQR(s, e);
-
-        // Save
-        if (updateStorage) {
-            localStorage.setItem('bobs_save', JSON.stringify(currentProgress));
-            localStorage.setItem('bobs_served_list', JSON.stringify(servedEpisodes));
-            if (currentUser !== 'guest') syncToCloud(s, e);
-        }
-    };
-
-    // --- HELPERS ---
-    async function syncToCloud(s, e) {
-        try {
-            await setDoc(doc(db, "users", currentUser), {
-                lastWatched: { s, e },
-                servedEpisodes: servedEpisodes,
-                lastSync: Date.now()
-            });
-        } catch(e) { console.error("Cloud Error", e); }
-    }
-
-    async function syncFromCloud() {
-        const userDoc = await getDoc(doc(db, "users", currentUser));
-        if (userDoc.exists()) {
-            const data = userDoc.data();
-            currentProgress = data.lastWatched;
-            servedEpisodes = data.servedEpisodes || [];
+            renderEpisodes(data.episodes.length, activeEp);
+        } catch (err) {
+            // FAILSAFE: Load generic buttons if API fails
+            renderEpisodes(BACKUP_EP_COUNT, activeEp);
         }
     }
 
-    function updateQR(s, e) {
-        const url = `${window.location.origin}${window.location.pathname}?s=${s}&e=${e}&u=${currentUser}`;
-        document.getElementById("qrcode").innerHTML = "";
-        new QRCode(document.getElementById("qrcode"), { text: url, width: 80, height: 80 });
+    function renderEpisodes(count, active) {
+        const grid = document.getElementById('episode-list');
+        grid.innerHTML = "";
+        for (let i = 1; i <= count; i++) {
+            const btn = document.createElement('div');
+            const id = `s${state.s}e${i}`;
+            btn.className = `ep-btn ${state.watched.includes(id) ? 'watched' : ''} ${i == active ? 'active' : ''}`;
+            btn.innerText = i;
+            btn.onclick = () => window.playEpisode(i);
+            grid.appendChild(btn);
+        }
+        window.playEpisode(active);
+    }
+
+    window.playEpisode = function(eNum) {
+        state.e = eNum;
+        const id = `s${state.s}e${eNum}`;
+        if (!state.watched.includes(id)) state.watched.push(id);
+        
+        localStorage.setItem('bobs_watched', JSON.stringify(state.watched));
+        window.updatePlayer();
+
+        // Highlight active button
+        document.querySelectorAll('.ep-btn').forEach((b, idx) => {
+            b.classList.toggle('active', (idx + 1) == eNum);
+            if ((idx + 1) == eNum) b.classList.add('watched');
+        });
+    }
+
+    window.updatePlayer = function() {
+        const server = document.getElementById('server-select').value;
+        document.getElementById('main-player').src = `${server}${CONFIG.TMDB_ID}/${state.s}/${state.e}`;
     }
 
     window.navEpisode = (dir) => {
-        let nextE = parseInt(currentProgress.e) + dir;
-        if (nextE < 1) return;
-        playEpisode(currentProgress.s, nextE);
-    };
+        window.playEpisode(parseInt(state.e) + dir);
+    }
 
-    window.switchUser = (u) => {
-        localStorage.setItem('bobs_user', u);
-        location.reload();
-    };
-
-    seasonSelect.onchange = (e) => loadEpisodes(e.target.value, 1);
-    serverSelect.onchange = () => playEpisode(currentProgress.s, currentProgress.e);
-    autoNextToggle.onchange = (e) => localStorage.setItem('auto_next', e.target.checked);
-
-    initApp();
+    init();
 </script>
 </body>
 </html>
