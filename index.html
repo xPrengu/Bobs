@@ -42,7 +42,7 @@
     <div class="app-container">
         <header>
             <h1>BOB'S BURGERS</h1>
-            <div class="burger-badge">TODAY'S SPECIAL: THE HANDOFF SLIDER</div>
+            <div class="burger-badge">TODAY'S SPECIAL: THE FAIL-SAFE SLIDER</div>
         </header>
 
         <main class="player-wrapper">
@@ -81,6 +81,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+        // Firebase Setup
         const firebaseConfig = {
             apiKey: "AIzaSyB0Ur1A-mSI7VHCEgdkyNjC6FU_pgeFdfk",
             authDomain: "bobs-1fd5d.firebaseapp.com",
@@ -93,9 +94,10 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
+        // CONFIG
         const CONFIG = {
             TMDB_ID: 32726, 
-            API_KEY: "f07d2f928a68a410efb5f49e4726b2b6"
+            API_KEY: "REPLACE_WITH_NEW_KEY" // Generate at themoviedb.org
         };
 
         let currentUser = localStorage.getItem('bobs_user') || 'guest';
@@ -107,6 +109,7 @@
         const episodeList = document.getElementById('episode-list');
         const serverSelect = document.getElementById('server-select');
 
+        // switchUser logic
         window.switchUser = async (name) => {
             currentUser = name;
             localStorage.setItem('bobs_user', name);
@@ -137,26 +140,27 @@
                     playEpisode(currentProgress.s, currentProgress.e, false);
                     document.getElementById('status-msg').textContent = "Staff Progress Loaded!";
                 } else {
-                    document.getElementById('status-msg').textContent = "No cloud data. Click episodes to start history.";
+                    document.getElementById('status-msg').textContent = "No cloud data found.";
                     await loadEpisodes(seasonSelect.value || 1, 1);
                 }
             } catch (e) {
-                document.getElementById('status-msg').textContent = "Sync failed. Check Firestore setup.";
+                document.getElementById('status-msg').textContent = "Sync failed. Database might be offline.";
                 console.error(e);
             }
         }
 
+        // loadSeasons logic with Fail-Safe
         async function loadSeasons() {
             try {
                 const res = await fetch(`https://api.themoviedb.org/3/tv/${CONFIG.TMDB_ID}?api_key=${CONFIG.API_KEY}`);
-                if (!res.ok) throw new Error("API Key Error");
+                if (!res.ok) throw new Error("API Key Invalid");
                 const data = await res.json();
                 seasonSelect.innerHTML = data.seasons
                     .filter(s => s.season_number > 0)
                     .map(s => `<option value="${s.season_number}">Season ${s.season_number}</option>`).join('');
                 if (data.backdrop_path) document.getElementById('dynamic-bg').style.backgroundImage = `url(https://image.tmdb.org/t/p/original${data.backdrop_path})`;
             } catch (e) {
-                console.warn("Using fallback seasons due to API error.");
+                console.warn("Using fallback seasons due to API error (401).");
                 let opts = "";
                 for(let i=1; i<=15; i++) opts += `<option value="${i}">Season ${i}</option>`;
                 seasonSelect.innerHTML = opts;
@@ -166,6 +170,7 @@
         async function loadEpisodes(sNum, activeEp = 1) {
             try {
                 const res = await fetch(`https://api.themoviedb.org/3/tv/${CONFIG.TMDB_ID}/season/${sNum}?api_key=${CONFIG.API_KEY}`);
+                if (!res.ok) throw new Error();
                 const data = await res.json();
                 episodeList.innerHTML = '';
                 data.episodes.forEach(ep => {
@@ -176,7 +181,17 @@
                     btn.onclick = () => playEpisode(sNum, ep.episode_number);
                     episodeList.appendChild(btn);
                 });
-            } catch (e) { console.error(e); }
+            } catch (e) { 
+                // Fallback for episodes if API fails
+                episodeList.innerHTML = '';
+                for(let i=1; i<=22; i++) {
+                    const btn = document.createElement('div');
+                    btn.className = 'ep-btn';
+                    btn.textContent = i;
+                    btn.onclick = () => playEpisode(sNum, i);
+                    episodeList.appendChild(btn);
+                }
+            }
         }
 
         async function playEpisode(s, e, updateStorage = true) {
@@ -216,7 +231,6 @@
         };
 
         seasonSelect.onchange = (e) => loadEpisodes(e.target.value, 1);
-        serverSelect.onchange = () => playEpisode(currentProgress.s, currentProgress.e);
         initApp();
     </script>
 </body>
